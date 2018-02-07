@@ -6,7 +6,6 @@ export default class PSBT {
   }
 
   public static fromHexString(opts: string) {
-    console.log("not implemented!")
     return this.fromBuffer(Buffer.from(opts, 'hex'))
   }
 
@@ -15,7 +14,7 @@ export default class PSBT {
   }
 
   public static fromBuffer(opts: Buffer) {
-    console.log("must decode in here ...")
+    console.warn("must decode in here ...")
     return new PSBT(opts)
   }
 }
