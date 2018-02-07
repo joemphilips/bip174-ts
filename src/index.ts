@@ -2,11 +2,12 @@ import {Transaction} from 'bitcoinjs-lib'
 
 export default class PSBT {
   public constructor(opts: any) {
+    throw new Error("failed to initialize psbt!")
   }
 
   public static fromHexString(opts: string) {
     console.log("not implemented!")
-    return new PSBT(opts)
+    return this.fromBuffer(Buffer.from(opts, 'hex'))
   }
 
   public static fromTransaction(opts: Transaction) {
@@ -14,6 +15,7 @@ export default class PSBT {
   }
 
   public static fromBuffer(opts: Buffer) {
-    console.log("not implemented!")
+    console.log("must decode in here ...")
+    return new PSBT(opts)
   }
 }
