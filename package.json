@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/bitcoinjs-lib": "^3.3.1",
     "bitcoinjs-lib": "^3.3.2"
   },
   "devDependencies": {

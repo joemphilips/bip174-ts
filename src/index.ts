@@ -1,10 +1,19 @@
-const bitcoin = require("bitcoinjs-lib");
+import {Transaction} from 'bitcoinjs-lib'
 
-export default class psbtSerializer {
-  constructor(public hex: string) {
+export default class PSBT {
+  public constructor(opts: any) {
   }
 
-  public deserialize () {
+  public static fromHexString(opts: string) {
+    console.log("not implemented!")
+    return new PSBT(opts)
+  }
 
+  public static fromTransaction(opts: Transaction) {
+    console.log("not implemented!")
+  }
+
+  public static fromBuffer(opts: Buffer) {
+    console.log("not implemented!")
   }
 }
