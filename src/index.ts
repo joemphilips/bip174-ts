@@ -1,19 +1,19 @@
 import {Transaction, Network} from 'bitcoinjs-lib'
 import * as assert from 'power-assert'
 
-/*
 interface KVPairs {
   [key: string]: Buffer | Transaction | null | string | number;
 }
-*/
 
-class GlobalKVMap {
+class GlobalKVMap implements KVPairs {
+  [key: string]: Buffer | Transaction | null | string | number;
   separator: number = 0x00;
   constructor(public transaction: Transaction) {
   }
 }
 
-class InputKVMap {
+class InputKVMap implements KVPairs {
+  [key: string]: Buffer | Transaction | null | string | number;
   separator: number = 0x00;
   constructor() {
   }
