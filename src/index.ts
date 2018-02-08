@@ -17,7 +17,7 @@ interface PSBTInterface {
 }
 
 export default class PSBT {
-  public constructor(GlobalField, ) {
+  public constructor(opts: any) {
     throw new Error("failed to initialize psbt!")
   }
 
@@ -38,7 +38,7 @@ export default class PSBT {
     console.warn("not yet implemented!")
   }
 
-  public concat(other: PSBT) {
+  public conbine(other: PSBT) {
     console.warn("not yet implemented!")
   }
 }

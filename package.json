@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "tsc && ava"
+    "test": "tsc && nyc ava"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +14,7 @@
     "bitcoinjs-lib": "^3.3.2"
   },
   "devDependencies": {
-    "ava": "^0.25.0"
+    "ava": "^0.25.0",
+    "nyc": "^11.4.1"
   }
 }
