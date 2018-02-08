@@ -42,24 +42,30 @@ export default class PSBT implements PSBTInterface {
     console.log("not implemented!")
   }
 
-  public static fromBuffer(opts: Buffer) {
+  public static fromBuffer(buf: Buffer) {
     let offset = 0
     function readInt8(){
-      const i = opts.readInt8(offset)
+      const i = buf.readInt8(offset)
       offset += 1
       return i
     }
 
     function readInt32LE () {
-      const i = opts.readInt32LE(offset)
+      const i = buf.readInt32LE(offset)
       offset += 4
       return i
     }
 
+    function readTransaction () {
+      const tx = Transaction.fromBuffer(buf, true)
+      offset += tx.toHex().length
+      return tx
+    }
+
     assert(readInt32LE() === this.magicBytes)
     assert(readInt8() === this.separator)
-
-    let global: GlobalKVMap = new GlobalKVMap(new Transaction())
+    let tx : Transaction = readTransaction()
+    let global: GlobalKVMap = new GlobalKVMap(tx)
     let inputs: InputKVMap = new InputKVMap()
     return new PSBT(global, [inputs])
   }
