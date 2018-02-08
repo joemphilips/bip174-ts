@@ -3,15 +3,14 @@ import PSBT from '../src'
 const tv: any = require('./fixtures/psbt.json')
 
 test('will not decode invalid test vector', (t: TestContext):void => {
-  t.plan(4)
   tv.invalid.forEach((testcase: any) => {
     t.throws(() => {const ser: PSBT = PSBT.fromHexString(testcase.hex)})
   })
 })
 
 test('can successfully decode valid test vector', (t: TestContext): void => {
-  t.plan(6)
   tv.valid.forEach((testcase: any) => {
     t.notThrows(() => {const ser: PSBT = PSBT.fromHexString(testcase.hex)})
   })
+
 })
