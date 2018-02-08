@@ -1,22 +1,19 @@
 import {Transaction, Network} from 'bitcoinjs-lib'
 import * as assert from 'power-assert'
 
+/*
 interface KVPairs {
-  separator: number;
-  [key: number]: Buffer | Transaction | null | string;
+  [key: string]: Buffer | Transaction | null | string | number;
 }
+*/
 
-class GlobalKVMap implements KVPairs {
+class GlobalKVMap {
   separator: number = 0x00;
-  public transaction: Transaction;
-  public redeemScript?: string;
-  constructor() {
-    this.00 = new Transaction();
-    this.00 = 'thisisreadeemscript';
+  constructor(public transaction: Transaction) {
   }
 }
 
-class InputKVMap implements KVPairs {
+class InputKVMap {
   separator: number = 0x00;
   constructor() {
   }
@@ -50,6 +47,7 @@ export default class PSBT implements PSBTInterface {
     function readInt8(){
       const i = opts.readInt8(offset)
       offset += 1
+      return i
     }
 
     function readInt32LE () {
@@ -61,7 +59,7 @@ export default class PSBT implements PSBTInterface {
     assert(readInt32LE() === this.magicBytes)
     assert(readInt8() === this.separator)
 
-    let global: GlobalKVMap = new GlobalKVMap()
+    let global: GlobalKVMap = new GlobalKVMap(new Transaction())
     let inputs: InputKVMap = new InputKVMap()
     return new PSBT(global, [inputs])
   }
