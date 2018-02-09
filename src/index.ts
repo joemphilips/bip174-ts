@@ -44,6 +44,11 @@ export default class PSBT implements PSBTInterface {
 
   public static fromBuffer(buf: Buffer) {
     let offset = 0
+
+    function readSlice(n: number) {
+      offset += n;
+      return buf.slice(offset - n, offset)
+    }
     function readInt8(){
       const i = buf.readInt8(offset)
       offset += 1
@@ -57,16 +62,33 @@ export default class PSBT implements PSBTInterface {
     }
 
     function readTransaction () {
-      const tx = Transaction.fromBuffer(buf, true)
-      offset += tx.toHex().length
+      const tx: Transaction = Transaction.fromBuffer(buf, true)
+      offset += tx.byteLength()
       return tx
     }
 
     assert(readInt32LE() === this.magicBytes)
     assert(readInt8() === this.separator)
     let tx : Transaction = readTransaction()
+
     let global: GlobalKVMap = new GlobalKVMap(tx)
     let inputs: InputKVMap = new InputKVMap()
+    let i;
+    while (true) {
+      i = readInt8()
+      if (i === 0x00) {
+        console.log('finish reading globalKVMap')
+        break
+      } else if (i === 0x01) { // RedeemScript
+        let hash = readSlice(20)
+      } else if (i === 0x02) {
+      } else if (i === 0x03) {
+      } else if (i === 0x04) {
+      } else {
+        console.warn("unexpected Value for Key while deserializing GlobalKVMap!")
+      }
+    }
+
     return new PSBT(global, [inputs])
   }
 
