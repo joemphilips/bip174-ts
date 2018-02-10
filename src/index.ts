@@ -14,6 +14,9 @@ class GlobalKVMap implements KVPairs {
   public tx: Transaction;
   public redeemScripts: Buffer[];
   public witnessScripts: Buffer[];
+  public pubKeys: Buffer[]; // Buffer of UInt32
+  public derivePath: Buffer[]; // Buffer of UInt32
+  public inputN: number
   constructor(public transaction: Transaction) {
   }
 }
@@ -28,13 +31,14 @@ class InputKVMap implements KVPairs {
 interface PSBTInterface {
   global: GlobalKVMap;
   inputs: InputKVMap[];
+  inputN?: number;
   separator?: number;
   magicBytes?: number;
 }
 
 export default class PSBT implements PSBTInterface {
-  static magicBytes: number = 0x70736274;
-  static separator: number = 0xff;
+  private static magicBytes: number = 0x70736274;
+  private static separator: number = 0xff;
   public constructor(public global: GlobalKVMap, public inputs: InputKVMap[]) {
     this.global = global
     this.inputs = inputs
@@ -102,7 +106,7 @@ export default class PSBT implements PSBTInterface {
         assert(scriptHash === crypto.hash160(redeemScript)) // does key and value correspond?
         assert(script.scriptHash.input.check(redeemScript, true)) // is redeemScript itself valid?
         global.redeemScripts.push(redeemScript)
-        continue
+        continue;
 
       // Witness Script
       } else if (i === 0x02) {
@@ -112,11 +116,21 @@ export default class PSBT implements PSBTInterface {
         assert(witnessScriptHash === crypto.hash256(witnessScript)) // does key and value correspond?
         assert(script.witnessScriptHash.input.check(witnessScript, true)) // is witness script itself valid?
         global.witnessScripts.push(witnessScript)
+        continue;
 
       // bip32 derivation path
       } else if (i === 0x03) {
+        let pubKeyBuffer = key.slice(1, -1)
+        let valueLength = readVarUint()
+        let derivePath = readSlice(valueLength)
+        global.pubKeys.push(pubKeyBuffer)
+        global.derivePath.push(derivePath)
+        continue;
 
+      // number of inputs
       } else if (i === 0x04) {
+        let _ = readVarUint()
+        global.inputN = varuint.decode(readVarUint())
       } else {
         console.warn("unexpected Value for Key while deserializing GlobalKVMap!")
       }
