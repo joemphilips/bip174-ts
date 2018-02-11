@@ -1,6 +1,5 @@
 import {Transaction, Network, TransactionBuilder, script, crypto} from 'bitcoinjs-lib'
 import * as assert from 'power-assert'
-import {Buffer, require} from 'node'
 
 // library which don't have *.d.ts has to be required not imported.
 const  varuint = require('varuint-bitcoin')
@@ -60,20 +59,20 @@ export default class PSBT implements PSBTInterface {
       offset += bytes;
       return buf.slice(offset - bytes, offset)
     }
-    function readInt8(){
-      const i = buf.readInt8(offset)
+    function readUInt8(){
+      const i = buf.readUInt8(offset)
       offset += 1
       return i
     }
 
-    function readInt32LE () {
-      const i = buf.readInt32LE(offset)
+    function readUInt32BE () {
+      const i = buf.readUInt32BE(offset)
       offset += 4
       return i
     }
 
     function readTransaction () {
-      const tx: Transaction = Transaction.fromBuffer(buf, true)
+      const tx: Transaction = Transaction.fromBuffer(buf.slice(offset, -1), true)
       offset += tx.byteLength()
       return tx
     }
@@ -84,58 +83,63 @@ export default class PSBT implements PSBTInterface {
       return vi
     }
 
-    assert(readInt32LE() === this.magicBytes)
-    assert(readInt8() === this.separator)
+    assert(readUInt32BE() === PSBT.magicBytes, "magic Bytes were malformed!")
+    assert(readUInt8() === PSBT.separator, "Not Valid first separator!")
 
     let tx : Transaction = readTransaction()
+    console.log("tx is ", tx)
     let global: GlobalKVMap = new GlobalKVMap(tx)
     let inputs: InputKVMap = new InputKVMap()
 
-    while (true) {
-      let keyLength = readVarUint()
-      let key: Buffer = readSlice(keyLength)
-      let i = key.readUInt8(0)
-      if (i === 0x00) {
-        console.log('finish reading globalKVMap')
-        break
+      while (true) {
+        if (global.length === offset + 4 + 1) {
+          console.log("finished deserializing GlobalKVMap!")
+          break
+        }
+        let keyLength = readVarUint()
+        let key: Buffer = readSlice(keyLength)
+        let i = key.readUInt8(0)
+        if (i === 0x00) {
+          console.log('finish reading globalKVMap')
+          break
 
-      // RedeemScript
-      } else if (i === 0x01) {
-        let scriptHash = key.slice(1, -1)
-        let valueLength = readVarUint()
-        let redeemScript = readSlice(valueLength)
-        assert(scriptHash === crypto.hash160(redeemScript)) // does key and value correspond?
-        assert(script.scriptHash.input.check(redeemScript, true)) // is redeemScript itself valid?
-        global.redeemScripts.push(redeemScript)
-        continue;
+          // RedeemScript
+        } else if (i === 0x01) {
+          let scriptHash = key.slice(1, -1)
+          let valueLength = readVarUint()
+          let redeemScript = readSlice(valueLength)
+          assert(scriptHash === crypto.hash160(redeemScript)) // does key and value correspond?
+          assert(script.scriptHash.input.check(redeemScript, true)) // is redeemScript itself valid?
+          global.redeemScripts.push(redeemScript)
+          continue;
 
-      // Witness Script
-      } else if (i === 0x02) {
-        let witnessScriptHash = key.slice(1, -1)
-        let valueLength = readVarUint()
-        let witnessScript = readSlice(valueLength) // in the case of P2WPKH
-        assert(witnessScriptHash === crypto.hash256(witnessScript)) // does key and value correspond?
-        assert(script.witnessScriptHash.input.check(witnessScript, true)) // is witness script itself valid?
-        global.witnessScripts.push(witnessScript)
-        continue;
+          // Witness Script
+        } else if (i === 0x02) {
+          let witnessScriptHash = key.slice(1, -1)
+          let valueLength = readVarUint()
+          let witnessScript = readSlice(valueLength) // in the case of P2WPKH
+          assert(witnessScriptHash === crypto.hash256(witnessScript)) // does key and value correspond?
+          assert(script.witnessScriptHash.input.check(witnessScript, true)) // is witness script itself valid?
+          global.witnessScripts.push(witnessScript)
+          continue;
 
-      // bip32 derivation path
-      } else if (i === 0x03) {
-        let pubKeyBuffer = key.slice(1, -1)
-        let valueLength = readVarUint()
-        let derivePath = readSlice(valueLength)
-        global.pubKeys.push(pubKeyBuffer)
-        global.derivePath.push(derivePath)
-        continue;
+          // bip32 derivation path
+        } else if (i === 0x03) {
+          let pubKeyBuffer = key.slice(1, -1)
+          let valueLength = readVarUint()
+          let derivePath = readSlice(valueLength)
+          global.pubKeys.push(pubKeyBuffer)
+          global.derivePath.push(derivePath)
+          continue;
 
-      // number of inputs
-      } else if (i === 0x04) {
-        let _ = readVarUint()
-        global.inputN = varuint.decode(readVarUint())
-      } else {
-        console.warn("unexpected Value for Key while deserializing GlobalKVMap!")
+          // number of inputs
+        } else if (i === 0x04) {
+          let _ = readVarUint()
+          global.inputN = varuint.decode(readVarUint())
+        } else {
+          console.warn("unexpected Value for Key while deserializing GlobalKVMap!")
+        }
       }
-    }
 
     return new PSBT(global, [inputs])
   }

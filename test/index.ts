@@ -8,9 +8,15 @@ test('will not decode invalid test vector', (t: TestContext):void => {
   })
 })
 
-test('can successfully decode valid test vector', (t: TestContext): void => {
+test('decoding from hex and Buffer snould be same', (t: TestContext): void => {
   tv.valid.forEach((testcase: any) => {
-    t.notThrows(() => {PSBT.fromHexString(testcase.hex)})
     t.is(PSBT.fromHexString(testcase.hex), PSBT.fromBuffer(Buffer.from(testcase.hex, 'hex')))
+  })
+})
+
+test.only('can get valid Transaction after decoding', (t: TestContext): void => {
+  tv.valid.forEach((testcase: any) => {
+    let psbt: PSBT = PSBT.fromHexString(testcase.hex);
+    t.truthy(psbt.global.tx)
   })
 })
