@@ -1,5 +1,6 @@
 import {Transaction, Network, TransactionBuilder, script, crypto} from 'bitcoinjs-lib'
 import * as assert from 'power-assert'
+import {Buffer, require} from 'node'
 
 // library which don't have *.d.ts has to be required not imported.
 const  varuint = require('varuint-bitcoin')
