@@ -6,7 +6,7 @@ const tv: any = require('./fixtures/psbt.json')
 let context: any;
 
 test.beforeEach("setup blockchain proxy", (t: TestContext) => {
-  context = {rpc: new RPC("~/.bitcoin/bitcoin.conf")}
+  context = {rpc: new RPC(process.env["HOME"] + "/.bitcoin/bitcoin.conf")}
 })
 
 test('will not decode invalid test vector', (t: TestContext):void => {
