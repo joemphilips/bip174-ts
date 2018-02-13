@@ -2,9 +2,11 @@
   "name": "bip174-ts",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "tsc && nyc ava"
+    "test": "tsc && nyc ava",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +23,6 @@
   "devDependencies": {
     "@types/node": "^9.4.5",
     "ava": "^0.25.0",
-    "nyc": "^11.4.1"
+    "nyc": "^11.5.0"
   }
 }

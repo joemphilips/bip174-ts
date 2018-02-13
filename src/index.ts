@@ -1,5 +1,5 @@
 import {Transaction, Network, script, crypto, Out} from 'bitcoinjs-lib'
-import {BlockchainProxy, LocalBchProxy} from 'blockchain-proxy'
+import {BlockchainProxy} from 'blockchain-proxy'
 import * as assert from 'power-assert'
 
 // library which don't have *.d.ts has to be required not imported.
@@ -37,7 +37,7 @@ class InputKVMap {
   }
 }
 
-interface PSBTInterface {
+export interface PSBTInterface {
   global: GlobalKVMap;
   inputs: InputKVMap[];
   inputN?: number;

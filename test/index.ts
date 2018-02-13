@@ -1,7 +1,11 @@
 import { test, TestContext } from 'ava'
 import PSBT from '../src'
-const RPC = require('blockchain-proxy/dist')
+import RPC from 'blockchain-proxy'
 const tv: any = require('./fixtures/psbt.json')
+
+test.before("setup blockchain proxy", t => {
+  t.context = new RPC()
+})
 
 test('will not decode invalid test vector', (t: TestContext):void => {
   tv.invalid.forEach((testcase: any) => {
