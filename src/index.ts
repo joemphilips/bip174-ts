@@ -5,7 +5,8 @@ import * as assert from 'power-assert'
 // library which don't have *.d.ts has to be required not imported.
 const  varuint = require('varuint-bitcoin')
 
-enum PSBTValueType{
+
+export enum PSBTValueType{
   UNSIGNED_TX_OR_NON_WITNESS_UTXO = 0x00,
   REDEEM_SCRIPT_OR_WITNESS_UTXO = 0x01,
   WITNESS_SCRIPT_OR_PARTIAL_SIG = 0x02,
@@ -13,7 +14,7 @@ enum PSBTValueType{
   NINPUTS_OR_INDEX = 0x04,
 }
 
-class GlobalKVMap {
+export class GlobalKVMap {
   separator: number = 0x00;
   public tx?: Transaction;
   public redeemScripts: Buffer[];
@@ -25,7 +26,7 @@ class GlobalKVMap {
   }
 }
 
-class InputKVMap {
+export class InputKVMap {
   separator: number = 0x00;
   public nonWitnessUTXO: Transaction;
   public witnessUTXO: Out;
@@ -135,7 +136,7 @@ export default class PSBT implements PSBTInterface {
           hasTransaction = true
           continue
         } else { // NON_WITNESS_UTXO
-          proxy.getPrevHash(global.tx)
+          proxy.getPrevHash(global.tx as Transaction)
             .then((prevs) => {
               assert(prevs.some(tx.getId()), "malformed Input UTXO! doesn't match with TX's input")
             })
