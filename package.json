@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "tsc && nyc ava",
+    "test": "tsc -p test && nyc ava",
     "build": "tsc"
   },
   "keywords": [],
