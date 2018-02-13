@@ -13,11 +13,13 @@
     "@types/bitcoinjs-lib": "^3.3.1",
     "@types/power-assert": "^1.4.29",
     "bitcoinjs-lib": "^3.3.2",
+    "blockchain-proxy": "git+https://github.com/joemphilips/blockchain-proxy.git#master",
+    "blockchain.info": "^2.11.0",
     "power-assert": "^1.4.4",
     "varuint-bitcoin": "^1.1.0"
   },
   "devDependencies": {
-    "@types/node": "^9.4.2",
+    "@types/node": "^9.4.5",
     "ava": "^0.25.0",
     "nyc": "^11.4.1"
   }

@@ -1,10 +1,7 @@
 import { test, TestContext } from 'ava'
 import PSBT from '../src'
+const RPC = require('blockchain-proxy/dist')
 const tv: any = require('./fixtures/psbt.json')
-
-test.beforeEach(t => {
-  console.log( )
-})
 
 test('will not decode invalid test vector', (t: TestContext):void => {
   tv.invalid.forEach((testcase: any) => {
