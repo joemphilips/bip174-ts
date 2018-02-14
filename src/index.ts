@@ -5,7 +5,6 @@ import * as assert from 'power-assert'
 // library which don't have *.d.ts has to be required not imported.
 const  varuint = require('varuint-bitcoin')
 
-
 export enum PSBTValueType{
   UNSIGNED_TX_OR_NON_WITNESS_UTXO = 0x00,
   REDEEM_SCRIPT_OR_WITNESS_UTXO = 0x01,
@@ -87,6 +86,10 @@ export default class PSBT implements PSBTInterface {
       return tx
     }
 
+    function readVarSlice() {
+      return readSlice(readVarUint())
+    }
+
     function readVarUint () {
       console.log('reading varuint')
       let vi = varuint.decode(buf, offset)
@@ -140,7 +143,7 @@ export default class PSBT implements PSBTInterface {
             .then((prevs) => {
               assert(prevs.some(tx.getId()), "malformed Input UTXO! doesn't match with TX's input")
             })
-          input.nonWitnessUTXO = tx
+          input.nonWitnessUTXO = tx;
         }
 
       } else if (type === PSBTValueType.REDEEM_SCRIPT_OR_WITNESS_UTXO) {
@@ -155,9 +158,12 @@ export default class PSBT implements PSBTInterface {
             `redeemScript ${redeemScript.toString('hex')} not valid`) // is redeemScript itself valid?
           global.redeemScripts.push(redeemScript)
           continue;
-
         } else {
-
+          // serialized witness output
+          // 1. 8byte amount in satoshi
+          // 2. sciprtPubKey(in network serialization format)
+          let value = readUInt8()
+          input.witnessUTXO = { value: value, script: readVarSlice() }
         }
 
       } else if (type === PSBTValueType.WITNESS_SCRIPT_OR_PARTIAL_SIG) {
