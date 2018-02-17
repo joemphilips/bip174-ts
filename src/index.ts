@@ -3,7 +3,8 @@ import {BlockchainProxy} from 'blockchain-proxy'
 import * as assert from 'power-assert'
 
 // library which don't have *.d.ts has to be required not imported.
-const  varuint = require('varuint-bitcoin')
+const varuint = require('varuint-bitcoin');
+const debug = require('debug')("psbt");
 
 export enum PSBTValueType{
   UNSIGNED_TX_OR_NON_WITNESS_UTXO = 0x00,
@@ -60,7 +61,7 @@ export default class PSBT implements PSBTInterface {
   }
 
   public static fromTransaction(opts: Transaction) {
-    console.log("not implemented!")
+    debug("not implemented!")
   }
 
   public static fromBuffer<P extends BlockchainProxy>(buf: Buffer, proxy: P) {
@@ -82,21 +83,13 @@ export default class PSBT implements PSBTInterface {
       return i
     }
 
-    function readTransaction () {
-      const tx: Transaction = Transaction.fromBuffer(buf.slice(offset + 1), true)
-      offset += tx.byteLength()
-      return tx
-    }
-
     function readVarSlice() {
       return readSlice(readVarUint())
     }
 
     function readVarUint () {
-      console.log('reading varuint')
       let vi = varuint.decode(buf, offset)
       offset += varuint.decode.bytes
-      console.log(`offset is ${offset} and vi is ${vi}`)
       return vi
     }
 
@@ -127,20 +120,22 @@ export default class PSBT implements PSBTInterface {
 
       // if it was not separator, than lets read entire key ...
       let key: Buffer = readSlice(keyLength)
-      console.log("key is ", key.toString("hex"))
+      debug("key is ", key.toString("hex"))
       let type = key.readUInt8(0)
+      let value = readVarSlice()
 
       // ... and actual value
       if (type === PSBTValueType.UNSIGNED_TX_OR_NON_WITNESS_UTXO) {
-        let tx: Transaction = readTransaction()
+        let tx: Transaction = Transaction.fromBuffer(value, true)
         if (inGlobals) {
-          console.log("tx is ", tx)
-          console.log("and its hex is ", tx.toHex())
-          console.log("and its length is ", tx.byteLength())
+          debug("the main tx is ", tx)
+          debug("and its hex is ", tx.toHex())
+          debug("and its length is ", tx.byteLength())
           global.tx = tx
           hasTransaction = true
           continue
         } else { // NON_WITNESS_UTXO
+          debug("input transaction is ", tx)
           proxy.getPrevHash(global.tx as Transaction)
             .then((prevs) => {
               assert(prevs.some(tx.getId()), "malformed Input UTXO! doesn't match with TX's input")
@@ -150,9 +145,9 @@ export default class PSBT implements PSBTInterface {
 
       } else if (type === PSBTValueType.REDEEM_SCRIPT_OR_WITNESS_UTXO) {
         if (inGlobals) {
-          console.log('reading redeemscript')
+          debug('parsinng redeemscript')
           let scriptHash = key.slice(1)
-          let redeemScript = readVarSlice()
+          let redeemScript = value
           assert(scriptHash === crypto.hash160(redeemScript),
             `redeemScript ${redeemScript.toString('hex')} does not match to hash!`) // does key and value correspond?
           assert(script.scriptHash.input.check(redeemScript, true),
@@ -160,52 +155,57 @@ export default class PSBT implements PSBTInterface {
           global.redeemScripts.push(redeemScript)
           continue;
         } else {
+          debug("parsing witness utxo")
           // serialized witness output
           // 1. 8byte amount in satoshi
           // 2. sciprtPubKey(in network serialization format)
-          let totalLength: number = readVarUint()
-          let amount: number = readUInt8()
-          let scriptPubkey = readVarSlice()
+          //  * length of pubkey (varUInt)
+          //  * pubkey itself
+          let amount: number = value.readUInt8(0)
+          let pubKeyLength = varuint.decode(value)
+          let scriptPubkey = value.slice(pubKeyLength)
           input.witnessUTXO = { value: amount, script: scriptPubkey }
         }
 
       } else if (type === PSBTValueType.WITNESS_SCRIPT_OR_PARTIAL_SIG) {
         if (inGlobals) {
-          console.log('reading witnessScirpt')
-          let witnessScriptHash = key.slice(1)
-          let valueLength = readVarUint()
-          let witnessScript = readSlice(valueLength) // in the case of P2WPKH
+          debug('reading witnessScirpt')
+          let witnessScriptHash = key.slice(1) // sha256
+          let valueLength = varuint.decode(value)
+          let witnessScript = value.slice(valueLength) // in the case of P2WPKH
           assert(witnessScriptHash === crypto.hash256(witnessScript)) // does key and value correspond?
           assert(script.witnessScriptHash.input.check(witnessScript, true)) // is witness script itself valid?
           global.witnessScripts.push(witnessScript)
           continue;
         } else {
+          debug("reading partial sig ")
           let pubkey: Buffer = key.slice(1)
-          input.partialSig = { pubkey: pubkey , sig: readVarSlice() }
+          let sig = value
+          input.partialSig = { pubkey: pubkey , sig: sig}
         }
 
       } else if (type === PSBTValueType.BIP32_KEYPATH_OR_SIGHASH) {
         if (inGlobals) {
-          console.log("reading bip32")
+          debug("reading bip32")
           let pubKeyBuffer = key.slice(1)
-          let derivePath = readVarSlice()
+          let derivePath = value
           global.pubKeys.push(pubKeyBuffer)
           global.derivePath.push(derivePath)
           continue;
         } else {
-          input.sighashRecommended = readUInt8()
+          input.sighashRecommended = value.readUInt8(0)
         }
       } else if (type === PSBTValueType.NINPUTS_OR_INDEX) {
         if (inGlobals) {
-          console.log("reading number of inputs")
-          global.inputN = varuint.decode(readVarSlice())
+          debug("reading number of inputs")
+          global.inputN = varuint.decode(value)
         } else {
-          input.index = varuint.decode(readVarSlice())
+          input.index = varuint.decode(value)
         }
       } else {
-        console.warn("unexpected Value for Key while deserializing GlobalKVMap!")
+        console.error(`unexpected Value for Key while deserializing ${inGlobals ? "global" : "inputs"}`)
         console.warn(' offset was ', offset)
-        console.warn(`In buffer, that is ${buf.slice(offset).toString("hex")} was `)
+        console.warn(`In buffer, that is ${buf.slice(offset).toString("hex")}`)
         console.warn(' length of tx was ', global.tx ? global.tx.byteLength() : undefined)
         throw new Error()
       }

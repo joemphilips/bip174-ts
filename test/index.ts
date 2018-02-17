@@ -22,7 +22,7 @@ test('decoding from hex and Buffer snould be same', (t: TestContext): void => {
 })
 
 tv.valid.forEach((testcase: any, i: number) => {
-  if (i !== 2) return
+  if (i !== 1) return
   test.only(`valid for ${testcase.hex}`, (t: TestContext): void => {
     let psbt: PSBT = PSBT.fromHexString(testcase.hex, context.rpc);
     t.truthy(psbt.global.tx)
