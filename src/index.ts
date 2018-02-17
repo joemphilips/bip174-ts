@@ -1,6 +1,9 @@
 import {Transaction, Network, script, crypto, Out} from 'bitcoinjs-lib'
 import {BlockchainProxy} from 'blockchain-proxy'
 import * as assert from 'power-assert'
+import classifyWitness = script.classifyWitness;
+import decompile = script.decompile;
+import classifyOutput = script.classifyOutput;
 
 // library which don't have *.d.ts has to be required not imported.
 const varuint = require('varuint-bitcoin');
@@ -23,6 +26,10 @@ export class GlobalKVMap {
   public derivePath: Buffer[]; // Buffer of UInt32
   public inputN: number
   constructor() {
+    this.redeemScripts = []
+    this.witnessScripts = []
+    this.pubKeys = []
+    this.derivePath = []
   }
 }
 
@@ -106,6 +113,7 @@ export default class PSBT implements PSBTInterface {
 
     while (offset < Buffer.byteLength(buf)) {
       let keyLength = readVarUint()
+      debug(`starting next roop from offset ${offset} ...`)
 
       // first, we must check if it was separator
       if (keyLength == 0) {
@@ -116,6 +124,7 @@ export default class PSBT implements PSBTInterface {
           inputIndex = separators
         }
         separators++
+        continue
       };
 
       // if it was not separator, than lets read entire key ...
@@ -146,12 +155,21 @@ export default class PSBT implements PSBTInterface {
       } else if (type === PSBTValueType.REDEEM_SCRIPT_OR_WITNESS_UTXO) {
         if (inGlobals) {
           debug('parsinng redeemscript')
+          debug("offset is ", offset)
           let scriptHash = key.slice(1)
           let redeemScript = value
-          assert(scriptHash === crypto.hash160(redeemScript),
-            `redeemScript ${redeemScript.toString('hex')} does not match to hash!`) // does key and value correspond?
-          assert(script.scriptHash.input.check(redeemScript, true),
-            `redeemScript ${redeemScript.toString('hex')} not valid`) // is redeemScript itself valid?
+          assert.deepEqual(scriptHash, crypto.hash160(redeemScript),
+            `redeemScript ${redeemScript.toString('hex')} does not match to hash!( ${scriptHash.toString("hex")} )
+            and it was ${crypto.hash160(redeemScript).toString("hex")}`) // does key and value correspond?
+          let decompiled = script.decompile(redeemScript)
+          let scriptType: string = classifyOutput(decompiled)
+          debug(`¥n¥n script Type is ${scriptType} ¥n¥n`)
+          if (scriptType == "witnesspubkeyhash") {
+            assert(script.witnessPubKeyHash.output.check(redeemScript),
+              `redeemScript ${redeemScript.toString('hex')} not valid`) // is redeemScript itself valid?
+          } else {
+            throw new Error(`redeem script was not the type of witnessPubKeyHash!`)
+          }
           global.redeemScripts.push(redeemScript)
           continue;
         } else {
@@ -193,6 +211,7 @@ export default class PSBT implements PSBTInterface {
           global.derivePath.push(derivePath)
           continue;
         } else {
+          debug("parsing value")
           input.sighashRecommended = value.readUInt8(0)
         }
       } else if (type === PSBTValueType.NINPUTS_OR_INDEX) {
