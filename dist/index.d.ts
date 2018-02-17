@@ -22,9 +22,11 @@ export declare class InputKVMap {
     separator: number;
     nonWitnessUTXO: Transaction;
     witnessUTXO: Out;
-    partialSigs: {
+    sighashRecommended: number;
+    index: number;
+    partialSig: {
         pubkey: Buffer;
-        sigs: Buffer;
+        sig: Buffer;
     };
     constructor();
 }

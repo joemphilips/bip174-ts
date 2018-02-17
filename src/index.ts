@@ -29,9 +29,11 @@ export class InputKVMap {
   separator: number = 0x00;
   public nonWitnessUTXO: Transaction;
   public witnessUTXO: Out;
-  public partialSigs: {
+  public sighashRecommended: number;
+  public index: number;
+  public partialSig: {
     pubkey: Buffer,
-    sigs: Buffer
+    sig: Buffer
   };
   constructor() {
   }
@@ -150,8 +152,7 @@ export default class PSBT implements PSBTInterface {
         if (inGlobals) {
           console.log('reading redeemscript')
           let scriptHash = key.slice(1)
-          let valueLength = readVarUint()
-          let redeemScript = readSlice(valueLength)
+          let redeemScript = readVarSlice()
           assert(scriptHash === crypto.hash160(redeemScript),
             `redeemScript ${redeemScript.toString('hex')} does not match to hash!`) // does key and value correspond?
           assert(script.scriptHash.input.check(redeemScript, true),
@@ -162,8 +163,10 @@ export default class PSBT implements PSBTInterface {
           // serialized witness output
           // 1. 8byte amount in satoshi
           // 2. sciprtPubKey(in network serialization format)
-          let value = readUInt8()
-          input.witnessUTXO = { value: value, script: readVarSlice() }
+          let totalLength: number = readVarUint()
+          let amount: number = readUInt8()
+          let scriptPubkey = readVarSlice()
+          input.witnessUTXO = { value: amount, script: scriptPubkey }
         }
 
       } else if (type === PSBTValueType.WITNESS_SCRIPT_OR_PARTIAL_SIG) {
@@ -177,30 +180,27 @@ export default class PSBT implements PSBTInterface {
           global.witnessScripts.push(witnessScript)
           continue;
         } else {
-
+          let pubkey: Buffer = key.slice(1)
+          input.partialSig = { pubkey: pubkey , sig: readVarSlice() }
         }
 
       } else if (type === PSBTValueType.BIP32_KEYPATH_OR_SIGHASH) {
         if (inGlobals) {
           console.log("reading bip32")
-          let pubKeyBuffer = key.slice(1, -1)
-          let valueLength = readVarUint()
-          let derivePath = readSlice(valueLength)
+          let pubKeyBuffer = key.slice(1)
+          let derivePath = readVarSlice()
           global.pubKeys.push(pubKeyBuffer)
           global.derivePath.push(derivePath)
           continue;
         } else {
-
-
+          input.sighashRecommended = readUInt8()
         }
-
       } else if (type === PSBTValueType.NINPUTS_OR_INDEX) {
         if (inGlobals) {
           console.log("reading number of inputs")
-          let _ = readVarUint()
-          global.inputN = varuint.decode(readVarUint())
+          global.inputN = varuint.decode(readVarSlice())
         } else {
-
+          input.index = varuint.decode(readVarSlice())
         }
       } else {
         console.warn("unexpected Value for Key while deserializing GlobalKVMap!")
