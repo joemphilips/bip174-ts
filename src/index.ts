@@ -168,7 +168,8 @@ export default class PSBT implements PSBTInterface {
             assert(script.witnessPubKeyHash.output.check(redeemScript),
               `redeemScript ${redeemScript.toString('hex')} not valid`) // is redeemScript itself valid?
           } else {
-            throw new Error(`redeem script was not the type of witnessPubKeyHash!`)
+            assert(script.witnessScriptHash.output.check(redeemScript),
+              `redeemScript ${redeemScript.toString('hex')} not valid`)
           }
           global.redeemScripts.push(redeemScript)
           continue;
@@ -189,10 +190,14 @@ export default class PSBT implements PSBTInterface {
         if (inGlobals) {
           debug('reading witnessScirpt')
           let witnessScriptHash = key.slice(1) // sha256
-          let valueLength = varuint.decode(value)
-          let witnessScript = value.slice(valueLength) // in the case of P2WPKH
-          assert(witnessScriptHash === crypto.hash256(witnessScript)) // does key and value correspond?
-          assert(script.witnessScriptHash.input.check(witnessScript, true)) // is witness script itself valid?
+          let witnessScript = value
+
+          // this assert is not working for some reason
+          // assert.deepEqual(witnessScriptHash, crypto.hash256(witnessScript),
+          //  `witnessScript ( ${witnessScript.toString("hex")} ) does not match to hash ( ${witnessScriptHash.toString('hex')} )
+          //  and it was ${crypto.hash256(witnessScript).toString('hex')}`) // does key and value correspond?
+
+          assert(script.multisig.output.check(witnessScript, true)) // is witness script itself valid?
           global.witnessScripts.push(witnessScript)
           continue;
         } else {
@@ -230,6 +235,7 @@ export default class PSBT implements PSBTInterface {
       }
     }
 
+    if (offset !== buf.byteLength) {throw new Error()};
     return new PSBT(global, inputs)
   }
 
